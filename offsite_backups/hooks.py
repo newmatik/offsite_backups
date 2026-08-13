@@ -147,8 +147,12 @@ scheduler_events = {
 	# 	"all": [
 	# 		"offsite_backups.tasks.all"
 	# 	],
+	"cron": {
+		"30 4 * * *": [
+			"offsite_backups.offsite_backups.doctype.dropbox_settings.dropbox_settings.take_backups_daily"
+		]
+	},
 	"daily_long": [
-		"offsite_backups.offsite_backups.doctype.dropbox_settings.dropbox_settings.take_backups_daily",
 		"offsite_backups.offsite_backups.doctype.s3_backup_settings.s3_backup_settings.take_backups_daily",
 		"offsite_backups.offsite_backups.doctype.google_drive.google_drive.daily_backup",
 	],

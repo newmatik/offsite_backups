@@ -11,13 +11,11 @@ from frappe.integrations.google_oauth import GoogleOAuth
 from frappe.model.document import Document
 from frappe.utils import get_backups_path, get_bench_path
 from frappe.utils.background_jobs import enqueue
-from frappe.utils.backups import new_backup
 from googleapiclient.errors import HttpError
 
 from offsite_backups.offsite_backups.offsite_backup_utils import (
-	get_latest_backup_file,
+	get_or_create_backup,
 	send_email,
-	validate_file_size,
 )
 
 
@@ -168,20 +166,8 @@ def upload_system_backup_to_google_drive():
 	check_for_folder_in_google_drive()
 	account.load_from_db()
 
-	validate_file_size()
-
-	if frappe.flags.create_new_backup:
-		set_progress(1, _("Backing up Data."))
-		backup = new_backup()
-		file_urls = []
-		file_urls.append(backup.backup_path_db)
-		file_urls.append(backup.backup_path_conf)
-
-		if account.file_backup:
-			file_urls.append(backup.backup_path_files)
-			file_urls.append(backup.backup_path_private_files)
-	else:
-		file_urls = get_latest_backup_file(with_files=account.file_backup)
+	set_progress(1, _("Preparing backup data."))
+	file_urls = get_or_create_backup(with_files=bool(account.file_backup))
 
 	for fileurl in file_urls:
 		if not fileurl:

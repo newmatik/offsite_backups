@@ -13,10 +13,8 @@ from frappe.utils.background_jobs import enqueue
 from rq.timeouts import JobTimeoutException
 
 from offsite_backups.offsite_backups.offsite_backup_utils import (
-	generate_files_backup,
-	get_latest_backup_file,
+	get_or_create_backup,
 	send_email,
-	validate_file_size,
 )
 
 
@@ -107,7 +105,6 @@ def take_backups_if(freq):
 @frappe.whitelist()
 def take_backups_s3(retry_count=0):
 	try:
-		validate_file_size()
 		backup_to_s3()
 		send_email(True, "Amazon S3", "S3 Backup Settings", "notify_email")
 	except JobTimeoutException:
@@ -131,9 +128,6 @@ def notify():
 
 
 def backup_to_s3():
-	from frappe.utils import get_backups_path
-	from frappe.utils.backups import new_backup
-
 	doc = frappe.get_single("S3 Backup Settings")
 	bucket = doc.bucket
 	path = doc.backup_path or ""
@@ -146,35 +140,10 @@ def backup_to_s3():
 		endpoint_url=doc.endpoint_url or "https://s3.amazonaws.com",
 	)
 
-	if frappe.flags.create_new_backup:
-		backup = new_backup(
-			ignore_files=False,
-			backup_path_db=None,
-			backup_path_files=None,
-			backup_path_private_files=None,
-			force=True,
-		)
-		db_filename = os.path.join(get_backups_path(), os.path.basename(backup.backup_path_db))
-		site_config = os.path.join(get_backups_path(), os.path.basename(backup.backup_path_conf))
-		if backup_files:
-			files_filename = os.path.join(get_backups_path(), os.path.basename(backup.backup_path_files))
-			private_files = os.path.join(
-				get_backups_path(), os.path.basename(backup.backup_path_private_files)
-			)
+	if backup_files:
+		db_filename, site_config, files_filename, private_files = get_or_create_backup(with_files=True)
 	else:
-		if backup_files:
-			db_filename, site_config, files_filename, private_files = get_latest_backup_file(
-				with_files=backup_files
-			)
-
-			if not files_filename or not private_files:
-				generate_files_backup()
-				db_filename, site_config, files_filename, private_files = get_latest_backup_file(
-					with_files=backup_files
-				)
-
-		else:
-			db_filename, site_config = get_latest_backup_file()
+		db_filename, site_config = get_or_create_backup()
 
 	folder = path + os.path.basename(db_filename)[:15] + "/"
 	# for adding datetime to folder name

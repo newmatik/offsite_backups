@@ -14,14 +14,12 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, encode, get_backups_path, get_files_path, get_request_site_address
 from frappe.utils.background_jobs import enqueue
-from frappe.utils.backups import new_backup
 from rq.timeouts import JobTimeoutException
 
 from offsite_backups.offsite_backups.offsite_backup_utils import (
 	get_chunk_site,
-	get_latest_backup_file,
+	get_or_create_backup,
 	send_email,
-	validate_file_size,
 )
 
 ignore_list = [".DS_Store"]
@@ -103,7 +101,6 @@ def take_backup_to_dropbox(retry_count=0, upload_db_backup=True):
 			write_backup_status("disabled", upload_db_backup=upload_db_backup)
 			return
 
-		validate_file_size()
 		did_not_upload, error_log, summary = backup_to_dropbox(upload_db_backup)
 		if did_not_upload:
 			raise RuntimeError(_("Dropbox did not accept {0} files").format(len(did_not_upload)))
@@ -149,12 +146,7 @@ def backup_to_dropbox(upload_db_backup=True):
 	dropbox_client = get_dropbox_client(dropbox_settings)
 
 	if upload_db_backup:
-		if frappe.flags.create_new_backup:
-			backup = new_backup(ignore_files=True)
-			filename = os.path.join(get_backups_path(), os.path.basename(backup.backup_path_db))
-			site_config = os.path.join(get_backups_path(), os.path.basename(backup.backup_path_conf))
-		else:
-			filename, site_config = get_latest_backup_file()
+		filename, site_config = get_or_create_backup()
 
 		upload_and_verify(filename, "/database", dropbox_client)
 		upload_and_verify(site_config, "/database", dropbox_client)

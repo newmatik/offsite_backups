@@ -81,20 +81,26 @@ def get_or_create_backup(with_files=False):
 		if all(backup_files):
 			return backup_files
 
-		backup = new_backup(ignore_files=not with_files, force=True)
-		backup_files = (backup.backup_path_db, backup.backup_path_conf)
-		if with_files:
-			backup_files += (backup.backup_path_files, backup.backup_path_private_files)
-
-		if not _is_complete_snapshot(backup_files):
+		# Always include file archives so a later file-required caller can reuse
+		# this dump instead of creating a second backup.
+		backup = new_backup(ignore_files=False, force=True)
+		full_files = (
+			backup.backup_path_db,
+			backup.backup_path_conf,
+			backup.backup_path_files,
+			backup.backup_path_private_files,
+		)
+		if not _is_complete_snapshot(full_files):
 			raise FileNotFoundError("The generated backup snapshot is incomplete")
 
-		return backup_files
+		return full_files if with_files else full_files[:2]
 
 
 def _is_complete_snapshot(backup_files):
-	"""Return whether all files exist and belong to the same backup snapshot."""
-	if not backup_files or not all(path and os.path.isfile(path) for path in backup_files):
+	"""Return whether all files exist, are non-empty, and belong to the same snapshot."""
+	if not backup_files or not all(
+		path and os.path.isfile(path) and os.path.getsize(path) > 0 for path in backup_files
+	):
 		return False
 
 	timestamps = {Path(path).name.split("-", 1)[0] for path in backup_files}

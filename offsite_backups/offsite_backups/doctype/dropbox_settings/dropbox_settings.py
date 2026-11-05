@@ -65,6 +65,7 @@ class DropboxSettings(Document):
 @frappe.whitelist()
 def take_backup():
 	"""Enqueue a Dropbox backup on its dedicated queue."""
+	frappe.only_for("System Manager")
 	enqueue_dropbox_backup()
 	frappe.msgprint(_("Queued for backup. It may take several hours while files are reconciled."))
 
@@ -455,6 +456,7 @@ def get_dropbox_authorize_url():
 
 @frappe.whitelist()
 def dropbox_auth_finish():
+	frappe.only_for("System Manager")
 	app_details = get_dropbox_settings(redirect_uri=True)
 	callback = frappe.form_dict
 	close = '<p class="text-muted">' + _("Please close this window") + "</p>"

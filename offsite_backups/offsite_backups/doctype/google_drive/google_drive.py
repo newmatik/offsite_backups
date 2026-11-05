@@ -68,6 +68,7 @@ def authorize_access(reauthorize=False, code=None):
 	If no Authorization code get it from Google and then request for Refresh Token.
 	Google Contact Name is set to flags to set_value after Authorization Code is obtained.
 	"""
+	frappe.only_for("System Manager")
 
 	oauth_code = frappe.db.get_single_value("Google Drive", "authorization_code") if not code else code
 	oauth_obj = GoogleOAuth("drive")
@@ -147,6 +148,7 @@ def check_for_folder_in_google_drive():
 @frappe.whitelist()
 def take_backup():
 	"""Enqueue longjob for taking backup to Google Drive"""
+	frappe.only_for("System Manager")
 	enqueue(
 		"offsite_backups.offsite_backups.doctype.google_drive.google_drive.upload_system_backup_to_google_drive",
 		queue="long",

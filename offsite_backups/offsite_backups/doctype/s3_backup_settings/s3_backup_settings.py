@@ -76,6 +76,7 @@ class S3BackupSettings(Document):
 @frappe.whitelist()
 def take_backup():
 	"""Enqueue longjob for taking backup to s3"""
+	frappe.only_for("System Manager")
 	enqueue(
 		"offsite_backups.offsite_backups.doctype.s3_backup_settings.s3_backup_settings.take_backups_s3",
 		queue="long",
@@ -104,6 +105,7 @@ def take_backups_if(freq):
 
 @frappe.whitelist()
 def take_backups_s3(retry_count=0):
+	frappe.only_for("System Manager")
 	try:
 		backup_to_s3()
 		send_email(True, "Amazon S3", "S3 Backup Settings", "notify_email")

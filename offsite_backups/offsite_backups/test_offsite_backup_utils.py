@@ -5,8 +5,9 @@ from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+from offsite_backups.offsite_backups import offsite_backup_utils
 from offsite_backups.offsite_backups.offsite_backup_utils import (
 	_is_complete_snapshot,
 	get_or_create_backup,
@@ -139,3 +140,29 @@ class UnitTestOffsiteBackupUtils(TestCase):
 		for path in paths:
 			Path(path).write_bytes(b"backup\n")
 		return paths
+
+
+class UnitTestBackupStatusEmail(TestCase):
+	"""The failure mail must survive the rollback of the failed background job."""
+
+	def send(self, success):
+		with (
+			patch.object(offsite_backup_utils, "get_recipients", return_value=["admin@example.com"]),
+			patch("frappe.sendmail") as sendmail,
+			patch("frappe.db", new=Mock()) as db,
+		):
+			db.get_single_value.return_value = 1
+			offsite_backup_utils.send_email(success, "Dropbox", "Dropbox Settings", "send_notifications_to")
+		return sendmail, db
+
+	def test_failure_mail_is_committed(self):
+		sendmail, db = self.send(False)
+
+		sendmail.assert_called_once()
+		db.commit.assert_called_once()
+
+	def test_success_mail_leaves_the_transaction_to_the_caller(self):
+		sendmail, db = self.send(True)
+
+		sendmail.assert_called_once()
+		db.commit.assert_not_called()

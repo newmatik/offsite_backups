@@ -188,7 +188,10 @@ def upload_system_backup_to_google_drive():
 			set_progress(2, _("Uploading backup to Google Drive."))
 			google_drive.files().create(body=file_metadata, media_body=media, fields="id").execute()
 		except HttpError as e:
+			# A rejected file means there is no complete offsite copy: report it and
+			# stop, instead of recording a successful backup below.
 			send_email(False, "Google Drive", "Google Drive", "email", error_status=e)
+			raise
 
 	set_progress(3, _("Uploading successful."))
 	frappe.db.set_single_value("Google Drive", "last_backup_on", frappe.utils.now_datetime())

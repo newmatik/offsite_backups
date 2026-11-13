@@ -41,6 +41,10 @@ def send_email(success, service_name, doctype, email_field, error_status=None):
 <p>Please contact your system manager for more information.</p>"""
 
 	frappe.sendmail(recipients=recipients, subject=subject, message=message)
+	if not success:
+		# Callers re-raise after a failure and the background job then rolls back.
+		# Commit so the queued failure mail survives that rollback.
+		frappe.db.commit()
 
 
 def get_recipients(doctype, email_field):

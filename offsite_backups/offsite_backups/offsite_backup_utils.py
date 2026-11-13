@@ -44,7 +44,7 @@ def send_email(success, service_name, doctype, email_field, error_status=None):
 	if not success:
 		# Callers re-raise after a failure and the background job then rolls back.
 		# Commit so the queued failure mail survives that rollback.
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: frappe-manual-commit -- keeps the failure mail, see above
 
 
 def get_recipients(doctype, email_field):

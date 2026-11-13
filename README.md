@@ -11,10 +11,10 @@ Google Drive.
 
 ## Installation
 
-Install the current v16 compatibility branch from the bench root:
+Install the default `version-16` branch from the bench root:
 
 ```bash
-bench get-app --branch fix/version-16-sdk-compatibility offsite_backups \
+bench get-app --branch version-16 offsite_backups \
   git@github.com:newmatik/offsite_backups.git
 bench --site <sitename> install-app offsite_backups
 bench --site <sitename> migrate
@@ -54,10 +54,10 @@ Pre-commit is configured to use the following tools for checking and formatting 
 
 ## CI
 
-This app can use GitHub Actions for CI. The following workflows are configured:
+GitHub Actions workflows:
 
 - CI: Installs Frappe v16 and this app, then runs unit tests on pull requests
-  and pushes to the default `develop` branch.
+  and pushes to the default `version-16` branch.
 - Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
 
 ## License
